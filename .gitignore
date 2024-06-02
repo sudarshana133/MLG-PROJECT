@@ -1,0 +1,25 @@
+# Ignore compiled files
+__pycache__/
+
+# Ignore the entire etc directory
+etc/
+
+# Ignore the entire Include directory
+Include/
+
+# Ignore the Lib directory and its contents
+Lib/
+Lib/site-packages/
+
+# Ignore environment variable file
+.env
+
+# Ignore the user database file
+users.db
+
+# Ignore the share directory and its contents
+share/
+
+# Ignore the Scripts directory and its contents
+Scripts/
+pyvenv.cfg
