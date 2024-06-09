@@ -9,6 +9,7 @@ import train_predict
 import plotting  # Ensure this import matches the location of your plotting.py
 from flask_mail import Mail, Message
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 server = Flask(__name__)
@@ -68,25 +69,24 @@ def update_output(n_clicks, company_name):
         
         X_train_imputed, X_test_imputed, y_train, y_test, stock_data = train_predict.fetch_and_prepare_data(company_name)
         if X_train_imputed is None:
-            return html.Div("Company doesn't exist or no data available."), ""
+            return html.Div("Company doesn't exist or no data available or there is a network issue."), ""
         
         y_pred = train_predict.train_and_predict(X_train_imputed, X_test_imputed, y_train)
         
-        summary_before_base64 = plotting.plot_summary_statistics(stock_data, 'Distribution of Non-null Values Before Feature Engineering')
         summary_after_base64 = plotting.plot_summary_statistics(stock_data, 'Distribution of Non-null Values After Feature Engineering')
         corr_matrix_base64 = plotting.plot_correlation_matrix(stock_data)
         histograms_base64 = plotting.plot_histograms(stock_data)
         predictions_base64 = plotting.plot_predictions(y_test, y_pred)
         boxplots_base64 = plotting.plot_boxplots(stock_data)
-
+        bump_chart64 = plotting.plot_bump_chart(y_test,y_pred)
         return (
             html.Div([
-                html.Div([html.Img(src=f'data:image/png;base64,{summary_before_base64}')]),
                 html.Div([html.Img(src=f'data:image/png;base64,{summary_after_base64}')]),
                 html.Div([html.Img(src=f'data:image/png;base64,{corr_matrix_base64}')]),
                 html.Div([html.Img(src=f'data:image/png;base64,{histograms_base64}')]),
                 html.Div([html.Img(src=f'data:image/png;base64,{predictions_base64}')]),
                 html.Div([html.Img(src=f'data:image/png;base64,{boxplots_base64}')]),
+                html.Div([html.Img(src=f'data:image/png;base64,{bump_chart64}')])
             ]),
             ""
         )
@@ -153,23 +153,29 @@ def handle_auth_buttons(login_clicks, signup_clicks, logout_clicks, send_clicks,
         X_train_imputed, X_test_imputed, y_train, y_test, stock_data = train_predict.fetch_and_prepare_data(company_name)
         y_pred = train_predict.train_and_predict(X_train_imputed, X_test_imputed, y_train)
 
-        summary_before_base64 = plotting.plot_summary_statistics(stock_data, 'Distribution of Non-null Values Before Feature Engineering')
         summary_after_base64 = plotting.plot_summary_statistics(stock_data, 'Distribution of Non-null Values After Feature Engineering')
         corr_matrix_base64 = plotting.plot_correlation_matrix(stock_data)
         histograms_base64 = plotting.plot_histograms(stock_data)
         predictions_base64 = plotting.plot_predictions(y_test, y_pred)
         boxplots_base64 = plotting.plot_boxplots(stock_data)
+        bump_chart64 = plotting.plot_bump_chart(y_test,y_pred)
 
         msg = Message("Stock Data Results", sender=os.getenv('MAIL_USERNAME'), recipients=[data['email']])
         msg.body = "Please find the attached stock data results."
-        msg.attach("summary_before.png", "image/png", base64.b64decode(summary_before_base64))
         msg.attach("summary_after.png", "image/png", base64.b64decode(summary_after_base64))
         msg.attach("correlation_matrix.png", "image/png", base64.b64decode(corr_matrix_base64))
         msg.attach("histograms.png", "image/png", base64.b64decode(histograms_base64))
         msg.attach("predictions.png", "image/png", base64.b64decode(predictions_base64))
         msg.attach("boxplots.png", "image/png", base64.b64decode(boxplots_base64))
-        mail.send(msg)
-        return data, "Email sent successfully.", {'display': 'block'}, ""
+        msg.attach("bumpchat.png","image/png",base64.b64decode(bump_chart64))
+
+        try:
+            mail.send(msg)
+            logging.info('Email sent successfully.')
+            return data, "Email sent successfully.", {'display': 'block'}, ""
+        except Exception as e:
+            logging.error(f"Failed to send email: {e}")
+            return data, f"Failed to send email: {e}", {'display': 'block'}, f"Failed to send email: {e}"
 
     return data, "", {'display': 'none'}, ""
 

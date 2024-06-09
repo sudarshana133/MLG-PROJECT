@@ -73,3 +73,22 @@ def plot_boxplots(stock_data):
     plt.close(fig)
     buf.seek(0)
     return base64.b64encode(buf.getvalue()).decode('utf-8')
+
+def plot_bump_chart(y_test, final_predictions):
+    sorted_indices = np.argsort(y_test)
+    sorted_actual = y_test[sorted_indices]
+    sorted_predicted = final_predictions[sorted_indices]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(sorted_actual, color='blue', label='Actual', marker='o')
+    ax.plot(sorted_predicted, color='red', label='Predicted', marker='o')
+    ax.set_xlabel('Observations')
+    ax.set_ylabel('Values')
+    ax.set_title('Bump Chart of Actual vs. Predicted Values')
+    ax.legend()
+
+    buf = BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.getvalue()).decode('utf-8')
